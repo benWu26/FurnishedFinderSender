@@ -2,6 +2,16 @@
 
 Automatically sends booking inquiry messages to all listings in your Furnished Finder favorites.
 
+## Pre-requisites
+
+**1. Install Python**
+
+https://www.python.org/downloads/
+
+**2. Install uv**
+
+https://docs.astral.sh/uv/getting-started/installation/
+
 ## Setup
 
 **1. Install dependencies**
