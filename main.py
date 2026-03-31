@@ -46,14 +46,33 @@ def main():
             
             favorites = get_favorites(page)
 
+            succeeded = []
+            failed = []
+
             for i, url in enumerate(favorites, 1):
                 print(f"[{i}/{len(favorites)}] Sending inquiry to: {url}")
                 try:
                     send_inquiry(page, url)
+                    succeeded.append(url)
                 except Exception as e:
                     print(f"  Failed: {e}")
+                    failed.append((url, str(e)))
         finally:
             browser.close()
+
+        # Summary
+        print(f"\n{'='*50}")
+        print(f"Results: {len(succeeded)} succeeded, {len(failed)} failed out of {len(favorites)} total")
+        if succeeded:
+            print(f"\nSucceeded:")
+            for url in succeeded:
+                print(f"  {url}")
+        if failed:
+            print(f"\nFailed:")
+            for url, error in failed:
+                print(f"  {url}")
+                print(f"    Error: {error}")
+        print(f"{'='*50}")
 
 
 if __name__ == "__main__":
