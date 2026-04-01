@@ -1,4 +1,4 @@
-from steps import login, get_favorites, send_inquiry
+from steps import login, get_favorites, send_inquiry, unsave_listing
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 import os
@@ -53,6 +53,7 @@ def main():
                 print(f"[{i}/{len(favorites)}] Sending inquiry to: {url}")
                 try:
                     send_inquiry(page, url)
+                    unsave_listing(page, url)
                     succeeded.append(url)
                 except Exception as e:
                     print(f"  Failed: {e}")

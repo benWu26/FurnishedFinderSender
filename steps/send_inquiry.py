@@ -157,6 +157,10 @@ def send_inquiry(page: Page, listing_url: str) -> None:
     # Submit
     print(f"  Submitting inquiry...")
     page.locator("button[type='submit']").filter(has_text="Submit").click()
-    page.wait_for_load_state("load")
+
+    # Wait for "Inquiry sent!" dialog then dismiss it
+    page.locator("text=Inquiry sent!").wait_for(state="visible", timeout=10000)
+    print(f"  Success confirmation received: Inquiry sent!")
+    page.keyboard.press("Escape")
 
     print(f"  Inquiry sent for: {listing_url}")
