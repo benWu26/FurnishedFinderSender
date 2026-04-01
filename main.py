@@ -1,4 +1,4 @@
-from steps import login, get_favorites, send_inquiry, unsave_listing
+from steps import login, get_favorites, send_inquiry, unsave_listing, DateUnavailableError
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 import os
@@ -47,6 +47,7 @@ def main():
             favorites = get_favorites(page)
 
             succeeded = []
+            skipped = []
             failed = []
 
             for i, url in enumerate(favorites, 1):
@@ -55,6 +56,9 @@ def main():
                     send_inquiry(page, url)
                     unsave_listing(page, url)
                     succeeded.append(url)
+                except DateUnavailableError as e:
+                    print(f"  Skipped: {e}")
+                    skipped.append((url, str(e)))
                 except Exception as e:
                     print(f"  Failed: {e}")
                     failed.append((url, str(e)))
@@ -63,11 +67,16 @@ def main():
 
         # Summary
         print(f"\n{'='*50}")
-        print(f"Results: {len(succeeded)} succeeded, {len(failed)} failed out of {len(favorites)} total")
+        print(f"Results: {len(succeeded)} succeeded, {len(skipped)} skipped, {len(failed)} failed out of {len(favorites)} total")
         if succeeded:
             print(f"\nSucceeded:")
             for url in succeeded:
                 print(f"  {url}")
+        if skipped:
+            print(f"\nSkipped (dates unavailable):")
+            for url, reason in skipped:
+                print(f"  {url}")
+                print(f"    Reason: {reason}")
         if failed:
             print(f"\nFailed:")
             for url, error in failed:

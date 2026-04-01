@@ -3,6 +3,11 @@ from datetime import datetime
 import os
 import re
 
+
+class DateUnavailableError(Exception):
+    """Raised when a requested date is disabled/unavailable in the calendar."""
+    pass
+
 # helper
 def _get_bedroom_count(page: Page) -> str:
     for el in page.locator(".font-semibold.text-black").all():
@@ -13,8 +18,9 @@ def _get_bedroom_count(page: Page) -> str:
     return "1"
 
 # helper
-def _pick_date_in_open_calendar(page: Page, date_str: str) -> None:
-    """Navigate the open calendar to the right month and click the day. date_str: MM/DD/YYYY"""
+def _pick_date_in_open_calendar(page: Page, date_str: str, is_from_date: bool = False) -> bool:
+    """Navigate the open calendar to the right month and click the day. date_str: MM/DD/YYYY
+    Returns True if the date was clicked, False if it was disabled."""
     dt = datetime.strptime(date_str, "%m/%d/%Y")
     target_day_attr = dt.strftime("%Y-%m-%d")
     target_month_label = dt.strftime("%B %Y")  # e.g. "May 2026"
@@ -30,10 +36,21 @@ def _pick_date_in_open_calendar(page: Page, date_str: str) -> None:
 
     disabled_cell = calendar.locator(f"td[data-day='{target_day_attr}'][data-disabled='true']")
     if disabled_cell.count() > 0:
-        print(f"  [warning] Date {date_str} is disabled in the calendar, skipping click.")
-        return
+        print(f"  [warning] Date {date_str} is disabled in the calendar")
+        return False
 
-    calendar.locator(f"td[data-day='{target_day_attr}']:not([data-hidden='true']):not([data-disabled='true']) button").click()
+    day_btn = calendar.locator(f"td[data-day='{target_day_attr}']:not([data-hidden='true']):not([data-disabled='true']) button")
+    day_btn.click()
+    page.wait_for_timeout(300)
+
+    # For the from date, if single click didn't register, try to click again
+    if is_from_date:
+        td = calendar.locator(f"td[data-day='{target_day_attr}']")
+        if td.count() > 0 and "selected" not in (td.get_attribute("data-selected") or ""):
+            print(f"  Single click may not have registered for {date_str}, trying another click")
+            day_btn.click()
+
+    return True
 
 
 # helper
@@ -46,38 +63,41 @@ def _pick_date_with_retry(page: Page, trigger_testid: str, date_str: str) -> Non
     is_to_date = "to" in trigger_testid
 
     for attempt in range(1, 6):
-        print(f"  [{trigger_testid}] Attempt {attempt}: clicking trigger for {date_str}")
+        #print(f"  [{trigger_testid}] Attempt {attempt}: clicking trigger for {date_str}")
         trigger.click()
 
         calendar = page.locator("[role='dialog'][aria-label='Select date range']")
         calendar.wait_for(state="visible", timeout=5000)
-        print(f"  [{trigger_testid}] Calendar opened")
+        #print(f"  [{trigger_testid}] Calendar opened")
 
-        _pick_date_in_open_calendar(page, date_str)
+        date_available = _pick_date_in_open_calendar(page, date_str, is_from_date=not is_to_date)
+        if not date_available:
+            page.keyboard.press("Escape")
+            raise DateUnavailableError(f"Date {date_str} is not available for this listing")
         print(f"  [{trigger_testid}] Date clicked in calendar")
 
         if is_to_date:
             # After selecting the end date, wait for the calendar to auto-close
-            print(f"  [{trigger_testid}] Waiting for calendar to auto-close...")
+            #print(f"  [{trigger_testid}] Waiting for calendar to auto-close...")
             try:
                 calendar.wait_for(state="hidden", timeout=3000)
                 print(f"  [{trigger_testid}] Calendar auto-closed")
             except Exception:
                 # If it didn't auto-close, press Tab to move focus away
-                print(f"  [{trigger_testid}] Calendar did not auto-close, pressing Tab")
+                #print(f"  [{trigger_testid}] Calendar did not auto-close, pressing Tab")
                 page.keyboard.press("Tab")
                 page.wait_for_timeout(500)
         else:
             page.keyboard.press("Escape")
-            print(f"  [{trigger_testid}] Pressed Escape to close calendar")
+            #print(f"  [{trigger_testid}] Pressed Escape to close calendar")
 
         page.wait_for_timeout(300)
         actual_text = trigger.locator("span").first.inner_text().strip()
-        print(f"  [{trigger_testid}] Trigger text: '{actual_text}' (expected: '{expected_text}')")
+        #print(f"  [{trigger_testid}] Trigger text: '{actual_text}' (expected: '{expected_text}')")
         if actual_text == expected_text:
             print(f"  [{trigger_testid}] Date set successfully")
             break
-        print(f"  [{trigger_testid}] [retry {attempt}/5] Date mismatch")
+        #print(f"  [{trigger_testid}] [retry {attempt}/5] Date mismatch")
     else:
         raise RuntimeError(f"Failed to set date '{date_str}' after 5 attempts.")
 
