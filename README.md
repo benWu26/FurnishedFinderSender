@@ -53,3 +53,12 @@ The script will:
 3. Prompt you in the terminal to enter that code
 4. Scrape all listings from your favorites (paginating automatically)
 5. Visit each listing and submit a booking inquiry with your trip details
+
+## FAQ
+
+**Why not just send messages to everythign in a search Query?**
+
+This potentially would violate the terms and service of Furnished Finder. Click [here](https://www.furnishedfinder.com/terms-of-use#:~:text=You%20will%20not%20repeatedly%20send%20messages%20or%20requests%20to%20other%20people.)
+
+
+
