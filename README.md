@@ -42,6 +42,10 @@ cp .env.template .env
 
 ## Usage
 
+First, find any properties that you would like to send an inquiry to and mark that property as a favorite. It should appear [here](https://www.furnishedfinder.com/members/favorites).
+
+### Then run:
+
 ```bash
 uv run main.py
 ```
